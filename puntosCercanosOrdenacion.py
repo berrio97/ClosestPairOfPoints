@@ -1,8 +1,8 @@
+###ALVARO BERRIO GALINDO###
 import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import random
-import time
 
 
 # Clase Punto en dos dimensiones
@@ -77,17 +77,6 @@ def dist(point1, point2):
         print("Se necesitan objetos de la clase Punto2D o Punto 3D")
 
 
-# Ordena los puntos segun la coordenada x o la y
-def sort_points(array, string):
-    if isinstance(array, list):
-        if string == 'x':
-            return sorted(array, key=lambda point: point.x)
-        elif string == 'y':
-            return sorted(array, key=lambda point: point.y)
-    else:
-        print("Se necesitan vectores")
-
-
 # Muestra por pantalla los puntos en un vector
 def print_points(array):
     if isinstance(array, list) and len(array) > 0:
@@ -101,8 +90,19 @@ def print_points(array):
         print("Se necesitan vectores")
 
 
+# Ordena los puntos segun la coordenada x o la y
+def sort_points(array, string):
+    if isinstance(array, list):
+        if string == 'x':
+            return sorted(array, key=lambda point: point.x)
+        elif string == 'y':
+            return sorted(array, key=lambda point: point.y)
+    else:
+        print("Se necesitan vectores")
+
+
 # Fuerza bruta que halla las distancias entre todos los puntos
-# y devuelve la minima y los puntos entre los que se da
+# y devuelve la minima yademas de cuales son estos puntos
 def caso_base(array):
     d = 9999999
     p1 = None
@@ -117,7 +117,7 @@ def caso_base(array):
     return [d, p1, p2]
 
 
-# Halla la distancia minima en la banda que divide a dos mitades y los puntos entre
+# Halla la distancia minima en la banda que divide a un conjunto de puntos en dos y los puntos entre
 # los que se da esa distancia
 def dist_banda(array, d, m):
     db = 999999999
@@ -129,31 +129,29 @@ def dist_banda(array, d, m):
     for i in array:
         if (m - d) < i.x < (m + d):
             banda.append(i)
-    # Para cada punto en la banda izquierda, se hallan las distancias con los demas puntos en la caja, que seran 5 como mucho
-    # y se devuelve la minima
+    # Para cada punto en la banda, se hallan las distancias con los demas puntos en la caja, que seran 5 como mucho en dos
+    # dimensiones y 17 en tres, y se devuelve la minima
     # En la caja de cada punto p1 entran puntos p2 tal que p2.x pertenece a [p1.x,p1.x+d) y p2.y a (p1.y-d,p1.y+d) en 2 dimensiones
     # y a mayores p2.z pertenece a (p1.z-d, p1.z+d) en 3 dimensiones
     if isinstance(array[0], Point2D):
         for i in range(len(banda)):
             for j in range(i + 1, i + 6):  # vale con poner array
-                if j < len(banda):
-                    if dist(banda[i], banda[j]) < db:
-                        db = dist(banda[i], banda[j])
-                        p1 = banda[i]
-                        p2 = banda[j]
+                if j < len(banda) and dist(banda[i], banda[j]) < db:
+                    db = dist(banda[i], banda[j])
+                    p1 = banda[i]
+                    p2 = banda[j]
     elif isinstance(array[0], Point3D):
         for i in range(len(banda)):
-            for j in range(i + 1, i + 6):  # vale con poner array
-                if j < len(banda):
-                    if dist(banda[i], banda[j]) < db:
-                        db = dist(banda[i], banda[j])
-                        p1 = banda[i]
-                        p2 = banda[j]
+            for j in range(i + 1, i + 18):  # vale con poner array
+                if (j < len(banda)) and (dist(banda[i], banda[j])) < db and ((banda[i].z - d) < banda[j].z < (banda[i].z + d)):
+                    db = dist(banda[i], banda[j])
+                    p1 = banda[i]
+                    p2 = banda[j]
     return [db, p1, p2]
 
 
 # Halla la distancia minima en un conjunto de puntos, funcion principal del programa que se llama a si misma
-# (recursividad), para cada conjunto de mas de 3 puntos, en 2 ocasiones con conjuntos de tamano n/2
+# (recursividad) para cada conjunto de mas de 3 puntos en 2 ocasiones con conjuntos de tamano n/2
 def puntos_cercanos(puntos):
     array_x = puntos[0]
     array_y = puntos[1]
@@ -164,7 +162,7 @@ def puntos_cercanos(puntos):
         s1y = []
         s2y = []
         # Para los conjuntos de puntos con 2 o 3 puntos se ejecuta el metodo de fuerza bruta
-        if 1<long <= 3:
+        if 1 < long <= 3:
             base = caso_base(array_x)
             return base
         elif long == 1:
@@ -179,19 +177,19 @@ def puntos_cercanos(puntos):
             # caso impar
             else:
                 med = array_x[middle - 1].x
-            # se crean los dos subconjuntos de tamano n/2
+            # se crean los dos subconjuntos de tamano n/2 con ordenacion en x y luego en y
             s1_x = array_x[0:middle]
             s2_x = array_x[middle:long]
-            # funcion recursiva con los subconjuntos
             for i in array_y:
                 if i in s1_x:
                     s1y.append(i)
                 elif i in s2_x:
                     s2y.append(i)
+            # funcion recursiva con los subconjuntos
             izq = puntos_cercanos([s1_x, s1y])
             der = puntos_cercanos([s2_x, s2y])
-            d1 = izq[0]
-            d2 = der[0]
+            d1 = izq[0]  # distancia minima en el conjunto izquierdo
+            d2 = der[0]  # distancia minima en el conjunto derecho
             # se comparan las distancias minimas de cada subconjunto y se actualizan los puntos candidatos
             if d1 == min(d1, d2):
                 c1 = izq[1]
@@ -214,47 +212,49 @@ def puntos_cercanos(puntos):
             return [min(d, db), c1, c2]  # se devuelve la distancia minima total y los puntos entre los que se da
 
 
+def ejecucion(puntos):
+    # Ejecucion
+    ordenados_x = sort_points(puntos, 'x')  # primeros se ordena el vector de puntos segun x y segun y
+    ordenados_y = sort_points(puntos, 'y')
+    sol = puntos_cercanos([ordenados_x, ordenados_y])
+
+    # Solucion con el algoritmo divide y venceras
+    print "La distancia minima es " + str(sol[0]) + " y se da entre los puntos"
+    print_points([sol[1], sol[2]])
+    print
+
+    # Solucion con fuerza bruta (a modo de comprobacion)
+    fuerza_bruta = caso_base(puntos)
+    print "Comprobacion, distancia minima: " + str(fuerza_bruta[0]) + ", puntos: "
+    print_points([fuerza_bruta[1], fuerza_bruta[2]])
+
+
 puntos = []
-plot = 0
+dim = 2
+n_puntos = 100
+max_punto = 50
 
-"""# Conjunto aleatorio caso 2D
-for i in range(1000):
-    a = Point2D(round(random.uniform(0, 100), 2), round(random.uniform(0, 100), 2))
-    t = False
-    for j in puntos:
-        if a.__eq__(j):
-            t = True
-    if not False:
-        puntos.append(a)
-plot = 2
-"""
-# Conjunto aleatorio caso 3D
-for i in range(1000):
-    a = Point3D(round(random.uniform(0, 100), 2), round(random.uniform(0, 100), 2), round(random.uniform(0, 100), 2))
-    t = False
-    for j in puntos:
-        if a.__eq__(j):
-            t = True
-    if not False:
-        puntos.append(a)
-plot = 3
-
-# Ejecucion
-ordenados_x = sort_points(puntos, 'x')
-ordenados_y = sort_points(puntos, 'y')
-sol = puntos_cercanos([ordenados_x, ordenados_y])
-# Solucion con el algoritmo divide y venceras
-print "La distancia minima es " + str(sol[0]) + " y se da entre los puntos"
-print_points([sol[1], sol[2]])
-print
-# Solucion con fuerza bruta (a modo de comprobacion)
-waio = caso_base(puntos)
-print "Comprobacion, distancia minima:"
-print(waio[0])
-print "puntos: "
-print_points([waio[1], waio[2]])
-
-"""if plot == 2:
+# creacion del vector de puntos
+if dim == 2:
+    for i in range(n_puntos):
+        a = Point2D(round(random.uniform(0, max_punto), 2), round(random.uniform(0, max_punto), 2))
+        t = False
+        for j in puntos:
+            if a.__eq__(j):
+                t = True
+        if not False:
+            puntos.append(a)
+    ejecucion(puntos)
     plot2D(puntos)
-else:
-    plot3D(puntos)"""
+elif dim == 3:
+    for i in range(n_puntos):
+        a = Point3D(round(random.uniform(0, max_punto), 2), round(random.uniform(0, max_punto), 2),
+                    round(random.uniform(0, max_punto), 2))
+        t = False
+        for j in puntos:
+            if a.__eq__(j):
+                t = True
+        if not False:
+            puntos.append(a)
+    ejecucion(puntos)
+    plot3D(puntos)
